@@ -1,0 +1,19 @@
+{
+  "name": "Moneta – dein Finanzplan",
+  "short_name": "Moneta",
+  "description": "Dein privater, offlinefähiger Finanzplaner.",
+  "lang": "de-DE",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7f5",
+  "theme_color": "#101c19",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

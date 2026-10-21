@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101c19">
+    <meta name="description" content="Dein persönlicher, privater Finanzplaner.">
+    <title>Moneta – dein Finanzplan</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Hauptnavigation">
+        <a class="brand" href="#" aria-label="Moneta Startseite">
+          <span class="brand-mark" aria-hidden="true">m</span>
+          <span>moneta<span class="brand-period">.</span></span>
+        </a>
+        <div class="nav-label">ÜBERSICHT</div>
+        <nav class="primary-nav">
+          <a class="nav-link active" href="#dashboard" aria-current="page">
+            <span class="nav-icon">⌂</span> Dashboard
+          </a>
+          <a class="nav-link" href="#transactions">
+            <span class="nav-icon">⇄</span> Buchungen
+          </a>
+          <a class="nav-link" href="#recurring">
+            <span class="nav-icon">↻</span> Wiederkehrend
+          </a>
+          <a class="nav-link" href="#insights">
+            <span class="nav-icon">◔</span> Auswertung
+          </a>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="privacy-card">
+            <span class="privacy-icon">✳</span>
+            <strong>Deine Daten bleiben bei dir.</strong>
+            <span>Privat gespeichert auf diesem Gerät.</span>
+          </div>
+          <button class="nav-link settings-link" id="import-button" type="button">
+            <span class="nav-icon">↑</span> Daten importieren
+          </button>
+          <button class="nav-link settings-link" id="export-button" type="button">
+            <span class="nav-icon">↓</span> Daten exportieren
+          </button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+      </aside>
+
+      <main class="main-content" id="dashboard">
+        <header class="topbar">
+          <div class="breadcrumbs">Dein Bereich <span>/</span> <strong>Finanzen</strong></div>
+          <div class="topbar-actions">
+            <span class="local-status"><span class="status-dot"></span> Lokal gespeichert</span>
+            <button class="avatar" type="button" aria-label="Profil">M</button>
+          </div>
+        </header>
+
+        <section class="page-heading">
+          <div>
+            <p class="eyebrow" id="greeting">GUTEN TAG</p>
+            <h1>Dein Geld. <span>Dein Überblick.</span></h1>
+            <p class="subtitle">Ein klarer Blick auf das, was reinkommt und rausgeht.</p>
+          </div>
+          <button class="button button-primary" id="open-transaction" type="button">
+            <span class="button-plus">+</span> Buchung hinzufügen
+          </button>
+        </section>
+
+        <section class="overview-toolbar" aria-label="Zeitraum auswählen">
+          <div class="period-control">
+            <button class="icon-button" id="period-prev" type="button" aria-label="Vorheriger Zeitraum">‹</button>
+            <strong id="period-label">Dieser Monat</strong>
+            <button class="icon-button" id="period-next" type="button" aria-label="Nächster Zeitraum">›</button>
+          </div>
+          <div class="period-options" role="group" aria-label="Zeitraum">
+            <button class="period-option active" data-period="month" type="button">Monat</button>
+            <button class="period-option" data-period="quarter" type="button">3 Monate</button>
+            <button class="period-option" data-period="year" type="button">Jahr</button>
+            <button class="period-option" data-period="custom" type="button">Zeitraum</button>
+          </div>
+          <div class="custom-dates" id="custom-dates" hidden>
+            <label>Von <input type="date" id="date-from"></label>
+            <label>Bis <input type="date" id="date-to"></label>
+          </div>
+        </section>
+
+        <section class="summary-grid" aria-label="Finanzübersicht">
+          <article class="summary-card balance-card">
+            <div class="summary-top"><span>ÜBERSCHUSS</span><span class="summary-symbol">↗</span></div>
+            <div class="summary-value" id="balance-value">0,00&nbsp;€</div>
+            <div class="summary-foot"><span class="balance-caption">Einnahmen minus Ausgaben</span><span class="balance-badge" id="balance-badge">Im Zeitraum</span></div>
+            <div class="balance-decoration" aria-hidden="true"></div>
+          </article>
+          <article class="summary-card">
+            <div class="summary-top"><span>EINNAHMEN</span><span class="metric-icon income-icon">↘</span></div>
+            <div class="summary-value" id="income-value">0,00&nbsp;€</div>
+            <div class="summary-foot"><span class="muted">Im ausgewählten Zeitraum</span><span class="metric-dot income-dot"></span></div>
+          </article>
+          <article class="summary-card">
+            <div class="summary-top"><span>AUSGABEN</span><span class="metric-icon expense-icon">↗</span></div>
+            <div class="summary-value" id="expense-value">0,00&nbsp;€</div>
+            <div class="summary-foot"><span class="muted">Im ausgewählten Zeitraum</span><span class="metric-dot expense-dot"></span></div>
+          </article>
+          <article class="summary-card">
+            <div class="summary-top"><span>FIXKOSTEN</span><span class="metric-icon fixed-icon">↻</span></div>
+            <div class="summary-value" id="fixed-value">0,00&nbsp;€</div>
+            <div class="summary-foot"><span class="muted">Wiederkehrend im Zeitraum</span><span class="metric-dot fixed-dot"></span></div>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="panel trend-panel" id="insights">
+            <div class="panel-heading">
+              <div><p class="eyebrow">DEIN GELDFLUSS</p><h2>Einnahmen & Ausgaben</h2></div>
+              <div class="chart-legend"><span><i class="legend-income"></i> Einnahmen</span><span><i class="legend-expense"></i> Ausgaben</span></div>
+            </div>
+            <div class="chart-wrap" id="cashflow-chart" role="img" aria-label="Diagramm Einnahmen und Ausgaben">
+              <div class="empty-chart">Dein Geldfluss erscheint hier, sobald Buchungen vorhanden sind.</div>
+            </div>
+          </article>
+          <article class="panel category-panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">WOHIN GEHT'S?</p><h2>Ausgaben nach Kategorie</h2></div>
+              <button class="text-button" id="category-period" type="button">Details <span>↗</span></button>
+            </div>
+            <div id="category-list" class="category-list">
+              <div class="empty-state">Noch keine Ausgaben in diesem Zeitraum.</div>
+            </div>
+          </article>
+        </section>
+
+        <section class="lower-grid">
+          <article class="panel transactions-panel" id="transactions">
+            <div class="panel-heading">
+              <div><p class="eyebrow">AKTIVITÄT</p><h2>Letzte Buchungen</h2></div>
+              <button class="text-button" id="view-all" type="button">Alle ansehen <span>→</span></button>
+            </div>
+            <div class="transaction-list" id="transaction-list">
+              <div class="empty-state">Noch keine Buchungen. Füge deine erste hinzu.</div>
+            </div>
+          </article>
+          <article class="panel recurring-panel" id="recurring">
+            <div class="panel-heading">
+              <div><p class="eyebrow">GUT ZU WISSEN</p><h2>Wiederkehrend</h2></div>
+              <button class="text-button" id="add-recurring" type="button">+ Hinzufügen</button>
+            </div>
+            <div id="recurring-list" class="recurring-list">
+              <div class="empty-state">Füge Abos, Versicherungen oder regelmäßige Einnahmen hinzu.</div>
+            </div>
+            <div class="recurring-total" id="recurring-total" hidden></div>
+          </article>
+        </section>
+        <footer class="page-footer">Moneta ist ein privater Finanzplaner und keine Anlage- oder Steuerberatung. <span>Deine Daten bleiben auf diesem Gerät.</span></footer>
+      </main>
+    </div>
+
+    <dialog class="entry-dialog" id="entry-dialog" aria-labelledby="dialog-title">
+      <form id="transaction-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">NEUE BUCHUNG</p><h2 id="dialog-title">Was möchtest du festhalten?</h2></div>
+          <button class="dialog-close" type="button" data-close-dialog aria-label="Schließen">×</button>
+        </div>
+        <div class="entry-tabs" role="group" aria-label="Buchungsart">
+          <button type="button" class="entry-tab selected" data-kind="expense">Ausgabe</button>
+          <button type="button" class="entry-tab" data-kind="income">Einnahme</button>
+        </div>
+        <label class="field-label" for="description">Beschreibung</label>
+        <div class="description-input">
+          <input id="description" name="description" type="text" placeholder="z. B. Wocheneinkauf bei Rewe" required maxlength="100">
+          <button class="mic-button" id="voice-button" type="button" title="Spracheingabe starten" aria-label="Spracheingabe starten">♩</button>
+        </div>
+        <p class="voice-hint" id="voice-hint">Tipp: „12 Euro für Kaffee“ – Spracheingabe ist abhängig vom Browser.</p>
+        <div class="field-row">
+          <label class="field-label">Betrag
+            <span class="amount-input"><input id="amount" name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" required><span>€</span></span>
+          </label>
+          <label class="field-label">Datum<input id="transaction-date" name="date" type="date" required></label>
+        </div>
+        <label class="field-label" for="category">Kategorie</label>
+        <select id="category" name="category"></select>
+        <div class="dialog-actions">
+          <button class="button button-quiet" type="button" data-close-dialog>Abbrechen</button>
+          <button class="button button-primary" type="submit">Buchung speichern <span>→</span></button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="entry-dialog" id="recurring-dialog" aria-labelledby="recurring-dialog-title">
+      <form id="recurring-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">WIEDERKEHRENDE BUCHUNG</p><h2 id="recurring-dialog-title">Regelmäßigkeit planen</h2></div>
+          <button class="dialog-close" type="button" data-close-dialog aria-label="Schließen">×</button>
+        </div>
+        <div class="entry-tabs" role="group" aria-label="Art der regelmäßigen Buchung">
+          <button type="button" class="recurring-tab selected" data-kind="expense">Ausgabe</button>
+          <button type="button" class="recurring-tab" data-kind="income">Einnahme</button>
+        </div>
+        <label class="field-label" for="recurring-description">Beschreibung</label>
+        <input id="recurring-description" name="description" type="text" placeholder="z. B. Netflix, Gehalt, Haftpflicht" required maxlength="100">
+        <div class="field-row">
+          <label class="field-label">Betrag
+            <span class="amount-input"><input id="recurring-amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0,00" required><span>€</span></span>
+          </label>
+          <label class="field-label">Kategorie<select id="recurring-category" name="category"></select></label>
+        </div>
+        <div class="field-row">
+          <label class="field-label">Startdatum<input id="recurring-start" name="start" type="date" required></label>
+          <label class="field-label">Intervall<select id="recurring-frequency" name="frequency"><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select></label>
+        </div>
+        <label class="field-label">Enddatum <span class="optional-label">optional</span><input id="recurring-end" name="end" type="date"></label>
+        <div class="dialog-actions">
+          <button class="button button-quiet" type="button" data-close-dialog>Abbrechen</button>
+          <button class="button button-primary" type="submit">Regel speichern <span>→</span></button>
+        </div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
