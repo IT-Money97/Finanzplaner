@@ -352,6 +352,22 @@
     return new Date(year, monthIndex, Math.min(origin.getDate(), new Date(year, monthIndex + 1, 0).getDate()));
   }
 
+  function nextOccurrence(rule, from) {
+    if (rule.end && (rule.end < from || rule.end < rule.start)) return null;
+    const origin = new Date(`${rule.start}T12:00:00`);
+    const target = new Date(`${from}T12:00:00`);
+    if (origin > target) return rule.start;
+
+    let index = rule.frequency === "yearly"
+      ? target.getFullYear() - origin.getFullYear()
+      : (target.getFullYear() - origin.getFullYear()) * 12 + target.getMonth() - origin.getMonth();
+    let candidate = occurrenceDate(rule, Math.max(0, index));
+    if (dateString(candidate) < from) candidate = occurrenceDate(rule, Math.max(0, index) + 1);
+
+    const next = dateString(candidate);
+    return rule.end && next > rule.end ? null : next;
+  }
+
   function occurrences(rule, start, end) {
     const from = new Date(`${start}T00:00:00`);
     const to = new Date(`${end}T23:59:59`);
@@ -523,7 +539,10 @@
   }
 
   function renderRecurring(start, end) {
-    const upcoming = state.recurring.map((item) => ({ ...item, next: occurrences(item, today, item.end || "9999-12-31")[0]?.date })).filter((item) => item.next).sort((a, b) => a.next.localeCompare(b.next));
+    const upcoming = state.recurring.flatMap((item) => {
+      const next = nextOccurrence(item, today);
+      return next ? [{ ...item, next }] : [];
+    }).sort((a, b) => a.next.localeCompare(b.next));
     const list = $("#recurring-list");
     list.innerHTML = upcoming.length ? upcoming.map((item) => {
       const [icon] = categoryMeta[item.category] || categoryMeta.Sonstiges;

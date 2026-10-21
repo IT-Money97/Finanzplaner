@@ -170,7 +170,7 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
 .entry-dialog { width: min(100% - 28px, 470px); max-height: min(92dvh, 750px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; border: 0; border-radius: 14px; padding: 25px; color: #24312b; box-shadow: 0 20px 70px #10271f33; }
 .entry-dialog[open] { position: fixed; margin: auto; }
 .entry-dialog form { min-width: 0; }
-.entry-dialog::backdrop { background: #10231ccc; backdrop-filter: blur(3px); }
+.entry-dialog::backdrop { background: #10231ccc; }
 .dialog-heading { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
 .dialog-heading .eyebrow { margin-bottom: 6px; }
 .dialog-heading h2 { font-size: 18px; }
@@ -185,7 +185,7 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
 .description-input input { flex: 1; }
 .mic-button { width: 40px; border: 1px solid #dce9df; border-radius: 6px; color: #287252; background: #f1f8f4; font-size: 17px; }
 .mic-button.listening { color: white; background: #c95e52; animation: pulse 1s infinite alternate; }
-.voice-hint { max-width: 100%; margin: -7px 0 13px; color: #77857d; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.voice-hint { max-width: 100%; margin: 4px 0 13px; color: #77857d; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 .amount-input { display: flex; align-items: center; border: 1px solid #e3eae5; border-radius: 6px; padding-right: 10px; }
 .amount-input:focus-within { border-color: #83bb9c; box-shadow: 0 0 0 3px #dff1e6; }
