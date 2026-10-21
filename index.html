@@ -19,16 +19,16 @@
         </a>
         <div class="nav-label">ÜBERSICHT</div>
         <nav class="primary-nav">
-          <a class="nav-link active" href="#dashboard" aria-current="page">
+          <a class="nav-link active" href="#dashboard" data-page-link aria-current="page">
             <span class="nav-icon">⌂</span> Dashboard
           </a>
-          <a class="nav-link" href="#transactions">
+          <a class="nav-link" href="#transactions" data-page-link>
             <span class="nav-icon">⇄</span> Buchungen
           </a>
-          <a class="nav-link" href="#recurring">
+          <a class="nav-link" href="#recurring" data-page-link>
             <span class="nav-icon">↻</span> Wiederkehrend
           </a>
-          <a class="nav-link" href="#insights">
+          <a class="nav-link" href="#insights" data-page-link>
             <span class="nav-icon">◔</span> Auswertung
           </a>
         </nav>
@@ -48,7 +48,7 @@
         </div>
       </aside>
 
-      <main class="main-content" id="dashboard">
+      <main class="main-content" id="app-main">
         <header class="topbar">
           <div class="breadcrumbs">Dein Bereich <span>/</span> <strong>Finanzen</strong></div>
           <div class="topbar-actions">
@@ -57,107 +57,151 @@
           </div>
         </header>
 
-        <section class="page-heading">
-          <div>
-            <p class="eyebrow" id="greeting">GUTEN TAG</p>
-            <h1>Dein Geld. <span>Dein Überblick.</span></h1>
-            <p class="subtitle">Ein klarer Blick auf das, was reinkommt und rausgeht.</p>
-          </div>
-          <div class="heading-actions">
-            <button class="button button-secondary" id="open-voice-entry" type="button">♩ Mehrere per Audio</button>
-            <button class="button button-primary" id="open-transaction" type="button">
-              <span class="button-plus">+</span> Buchung hinzufügen
-            </button>
-          </div>
-        </section>
-
-        <section class="overview-toolbar" aria-label="Zeitraum auswählen">
-          <div class="period-control">
-            <button class="icon-button" id="period-prev" type="button" aria-label="Vorheriger Zeitraum">‹</button>
-            <strong id="period-label">Dieser Monat</strong>
-            <button class="icon-button" id="period-next" type="button" aria-label="Nächster Zeitraum">›</button>
-          </div>
-          <div class="period-options" role="group" aria-label="Zeitraum">
-            <button class="period-option active" data-period="month" type="button">Monat</button>
-            <button class="period-option" data-period="quarter" type="button">3 Monate</button>
-            <button class="period-option" data-period="year" type="button">Jahr</button>
-            <button class="period-option" data-period="custom" type="button">Zeitraum</button>
-          </div>
-          <div class="custom-dates" id="custom-dates" hidden>
-            <label>Von <input type="date" id="date-from"></label>
-            <label>Bis <input type="date" id="date-to"></label>
-          </div>
-        </section>
-
-        <section class="summary-grid" aria-label="Finanzübersicht">
-          <article class="summary-card balance-card">
-            <div class="summary-top"><span>ÜBERSCHUSS</span><span class="summary-symbol">↗</span></div>
-            <div class="summary-value" id="balance-value">0,00&nbsp;€</div>
-            <div class="summary-foot"><span class="balance-caption">Einnahmen minus Ausgaben</span><span class="balance-badge" id="balance-badge">Im Zeitraum</span></div>
-            <div class="balance-decoration" aria-hidden="true"></div>
-          </article>
-          <article class="summary-card">
-            <div class="summary-top"><span>EINNAHMEN</span><span class="metric-icon income-icon">↘</span></div>
-            <div class="summary-value" id="income-value">0,00&nbsp;€</div>
-            <div class="summary-foot"><span class="muted">Im ausgewählten Zeitraum</span><span class="metric-dot income-dot"></span></div>
-          </article>
-          <article class="summary-card">
-            <div class="summary-top"><span>AUSGABEN</span><span class="metric-icon expense-icon">↗</span></div>
-            <div class="summary-value" id="expense-value">0,00&nbsp;€</div>
-            <div class="summary-foot"><span class="muted">Im ausgewählten Zeitraum</span><span class="metric-dot expense-dot"></span></div>
-          </article>
-          <article class="summary-card">
-            <div class="summary-top"><span>FIXKOSTEN</span><span class="metric-icon fixed-icon">↻</span></div>
-            <div class="summary-value" id="fixed-value">0,00&nbsp;€</div>
-            <div class="summary-foot"><span class="muted">Wiederkehrend im Zeitraum</span><span class="metric-dot fixed-dot"></span></div>
-          </article>
-        </section>
-
-        <section class="content-grid">
-          <article class="panel trend-panel" id="insights">
-            <div class="panel-heading">
-              <div><p class="eyebrow">DEIN GELDFLUSS</p><h2>Einnahmen & Ausgaben</h2></div>
-              <div class="chart-legend"><span><i class="legend-income"></i> Einnahmen</span><span><i class="legend-expense"></i> Ausgaben</span></div>
+        <section class="page-view active" id="dashboard" data-page="dashboard">
+          <header class="page-heading">
+            <div>
+              <p class="eyebrow" id="greeting">GUTEN TAG</p>
+              <h1>Dein Geld. <span>Dein Überblick.</span></h1>
+              <p class="subtitle">Alles Wichtige zu deinem Geld auf einen Blick.</p>
             </div>
-            <div class="chart-wrap" id="cashflow-chart" role="img" aria-label="Diagramm Einnahmen und Ausgaben">
-              <div class="empty-chart">Dein Geldfluss erscheint hier, sobald Buchungen vorhanden sind.</div>
+            <div class="heading-actions">
+              <button class="button button-secondary" id="open-voice-entry" type="button">♩ Mehrere per Audio</button>
+              <button class="button button-primary" id="open-transaction" type="button"><span class="button-plus">+</span> Buchung hinzufügen</button>
             </div>
-          </article>
-          <article class="panel category-panel">
-            <div class="panel-heading">
-              <div><p class="eyebrow">WOHIN GEHT'S?</p><h2>Ausgaben nach Kategorie</h2></div>
-              <button class="text-button" id="category-period" type="button">Details <span>↗</span></button>
+          </header>
+          <section class="overview-toolbar" aria-label="Zeitraum auswählen">
+            <div class="period-control">
+              <button class="icon-button" id="period-prev" type="button" aria-label="Vorheriger Zeitraum">‹</button>
+              <strong id="period-label">Dieser Monat</strong>
+              <button class="icon-button" id="period-next" type="button" aria-label="Nächster Zeitraum">›</button>
             </div>
-            <div class="category-visualization">
-              <div id="category-donut" class="category-donut" role="img" aria-label="Ausgaben nach Kategorien"></div>
-              <div id="category-list" class="category-list">
-                <div class="empty-state">Noch keine Ausgaben in diesem Zeitraum.</div>
+            <div class="period-options" role="group" aria-label="Zeitraum">
+              <button class="period-option active" data-period="month" type="button">Monat</button>
+              <button class="period-option" data-period="quarter" type="button">3 Monate</button>
+              <button class="period-option" data-period="year" type="button">Jahr</button>
+              <button class="period-option" data-period="custom" type="button">Zeitraum</button>
+            </div>
+            <div class="custom-dates" id="custom-dates" hidden>
+              <label>Von <input type="date" id="date-from"></label>
+              <label>Bis <input type="date" id="date-to"></label>
+            </div>
+          </section>
+          <section class="summary-grid" aria-label="Finanzübersicht">
+            <article class="summary-card balance-card">
+              <div class="summary-top"><span>ÜBERSCHUSS</span><span class="summary-symbol">↗</span></div>
+              <div class="summary-value" id="balance-value">0,00&nbsp;€</div>
+              <div class="summary-foot"><span class="balance-caption">Einnahmen minus Ausgaben</span><span class="balance-badge" id="balance-badge">Im Zeitraum</span></div>
+              <div class="balance-decoration" aria-hidden="true"></div>
+            </article>
+            <article class="summary-card">
+              <div class="summary-top"><span>EINNAHMEN</span><span class="metric-icon income-icon">↘</span></div>
+              <div class="summary-value" id="income-value">0,00&nbsp;€</div>
+              <div class="summary-foot"><span class="muted">Im Zeitraum</span><span class="metric-dot income-dot"></span></div>
+            </article>
+            <article class="summary-card">
+              <div class="summary-top"><span>AUSGABEN</span><span class="metric-icon expense-icon">↗</span></div>
+              <div class="summary-value" id="expense-value">0,00&nbsp;€</div>
+              <div class="summary-foot"><span class="muted">Im Zeitraum</span><span class="metric-dot expense-dot"></span></div>
+            </article>
+            <article class="summary-card">
+              <div class="summary-top"><span>FIXKOSTEN</span><span class="metric-icon fixed-icon">↻</span></div>
+              <div class="summary-value" id="fixed-value">0,00&nbsp;€</div>
+              <div class="summary-foot"><span class="muted">Im Zeitraum</span><span class="metric-dot fixed-dot"></span></div>
+            </article>
+          </section>
+          <section class="dashboard-grid">
+            <article class="panel dashboard-panel">
+              <div class="panel-heading">
+                <div><p class="eyebrow">LETZTE AKTIVITÄTEN</p><h2>Deine letzten Buchungen</h2></div>
+                <button class="text-button" data-go-page="transactions" type="button">Alle Buchungen <span>→</span></button>
               </div>
+              <div class="transaction-list compact-list" id="recent-transactions"></div>
+            </article>
+            <article class="panel dashboard-panel quick-panel">
+              <p class="eyebrow">SCHNELLZUGRIFF</p>
+              <h2>Was möchtest du tun?</h2>
+              <button class="quick-action" id="quick-add-expense" type="button"><span class="quick-action-icon expense-icon">↗</span><span><strong>Ausgabe erfassen</strong><small>Einkauf, Rechnung oder Abo</small></span><span class="quick-arrow">→</span></button>
+              <button class="quick-action" id="quick-add-income" type="button"><span class="quick-action-icon income-icon">↘</span><span><strong>Einnahme erfassen</strong><small>Gehalt oder sonstige Einnahme</small></span><span class="quick-arrow">→</span></button>
+              <button class="quick-action" id="quick-recurring" type="button"><span class="quick-action-icon fixed-icon">↻</span><span><strong>Fixkosten planen</strong><small>Abos, Versicherungen, Gehalt</small></span><span class="quick-arrow">→</span></button>
+            </article>
+          </section>
+        </section>
+
+        <section class="page-view" id="transactions" data-page="transactions" hidden>
+          <header class="page-heading">
+            <div><p class="eyebrow">BUCHUNGSÜBERSICHT</p><h1>Deine Buchungen</h1><p class="subtitle">Einnahmen und Ausgaben an einem Ort.</p></div>
+            <div class="heading-actions">
+              <button class="button button-secondary" id="transactions-voice" type="button">♩ Mehrere per Audio</button>
+              <button class="button button-primary" id="transactions-add" type="button"><span class="button-plus">+</span> Neue Buchung</button>
             </div>
+          </header>
+          <section class="overview-toolbar" aria-label="Buchungen filtern">
+            <div class="period-control"><button class="icon-button" id="transactions-period-prev" type="button" aria-label="Vorheriger Zeitraum">‹</button><strong id="transactions-period-label">Dieser Monat</strong><button class="icon-button" id="transactions-period-next" type="button" aria-label="Nächster Zeitraum">›</button></div>
+            <label class="filter-label" for="transaction-filter">Anzeigen</label>
+            <select id="transaction-filter" class="filter-select"><option value="all">Alle Buchungen</option><option value="expense">Nur Ausgaben</option><option value="income">Nur Einnahmen</option></select>
+          </section>
+          <section class="summary-grid compact-summary" aria-label="Summen im ausgewählten Zeitraum">
+            <article class="summary-card"><div class="summary-top"><span>EINNAHMEN</span></div><div class="summary-value" id="transactions-income">0,00&nbsp;€</div></article>
+            <article class="summary-card"><div class="summary-top"><span>AUSGABEN</span></div><div class="summary-value" id="transactions-expense">0,00&nbsp;€</div></article>
+            <article class="summary-card"><div class="summary-top"><span>BUCHUNGEN</span></div><div class="summary-value" id="transactions-count">0</div></article>
+          </section>
+          <article class="panel page-panel">
+            <div class="panel-heading"><div><p class="eyebrow">AKTIVITÄT</p><h2 id="transactions-list-title">Alle Buchungen</h2></div></div>
+            <div class="transaction-list full-list" id="transaction-list"></div>
           </article>
         </section>
 
-        <section class="lower-grid">
-          <article class="panel transactions-panel" id="transactions">
-            <div class="panel-heading">
-              <div><p class="eyebrow">AKTIVITÄT</p><h2>Letzte Buchungen</h2></div>
-              <button class="text-button" id="view-all" type="button">Alle ansehen <span>→</span></button>
-            </div>
-            <div class="transaction-list" id="transaction-list">
-              <div class="empty-state">Noch keine Buchungen. Füge deine erste hinzu.</div>
-            </div>
-          </article>
-          <article class="panel recurring-panel" id="recurring">
-            <div class="panel-heading">
-              <div><p class="eyebrow">GUT ZU WISSEN</p><h2>Wiederkehrend</h2></div>
-              <button class="text-button" id="add-recurring" type="button">+ Hinzufügen</button>
-            </div>
-            <div id="recurring-list" class="recurring-list">
-              <div class="empty-state">Füge Abos, Versicherungen oder regelmäßige Einnahmen hinzu.</div>
-            </div>
+        <section class="page-view" id="recurring" data-page="recurring" hidden>
+          <header class="page-heading">
+            <div><p class="eyebrow">PLANBARE FINANZEN</p><h1>Regelmäßige Buchungen</h1><p class="subtitle">Behalte Abos, Rechnungen und Gehalt im Blick.</p></div>
+            <div class="heading-actions"><button class="button button-primary" id="add-recurring" type="button"><span class="button-plus">+</span> Regel hinzufügen</button></div>
+          </header>
+          <section class="summary-grid compact-summary" aria-label="Wiederkehrende Summen">
+            <article class="summary-card"><div class="summary-top"><span>MONATLICHE AUSGABEN</span></div><div class="summary-value" id="recurring-monthly-expense">0,00&nbsp;€</div><div class="summary-foot"><span class="muted">inkl. Monatsanteil jährlicher Kosten</span></div></article>
+            <article class="summary-card"><div class="summary-top"><span>MONATLICHE EINNAHMEN</span></div><div class="summary-value" id="recurring-monthly-income">0,00&nbsp;€</div><div class="summary-foot"><span class="muted">geplante regelmäßige Einnahmen</span></div></article>
+            <article class="summary-card"><div class="summary-top"><span>AKTIVE REGELN</span></div><div class="summary-value" id="recurring-count">0</div><div class="summary-foot"><span class="muted">monatlich oder jährlich</span></div></article>
+          </section>
+          <article class="panel page-panel">
+            <div class="panel-heading"><div><p class="eyebrow">DEIN ZAHLUNGSPLAN</p><h2>Als Nächstes fällig</h2></div></div>
+            <div id="recurring-list" class="recurring-list"></div>
             <div class="recurring-total" id="recurring-total" hidden></div>
           </article>
         </section>
+
+        <section class="page-view" id="insights" data-page="insights" hidden>
+          <header class="page-heading">
+            <div><p class="eyebrow">DEINE FINANZEN VERSTEHEN</p><h1>Auswertung</h1><p class="subtitle">Geldfluss und Ausgabenkategorien im gewählten Zeitraum.</p></div>
+          </header>
+          <section class="overview-toolbar" aria-label="Auswertungszeitraum">
+            <div class="period-control"><button class="icon-button" id="insights-period-prev" type="button" aria-label="Vorheriger Zeitraum">‹</button><strong id="insights-period-label">Dieser Monat</strong><button class="icon-button" id="insights-period-next" type="button" aria-label="Nächster Zeitraum">›</button></div>
+            <div class="period-options" role="group" aria-label="Auswertungszeitraum">
+              <button class="period-option active" data-period="month" type="button">Monat</button>
+              <button class="period-option" data-period="quarter" type="button">3 Monate</button>
+              <button class="period-option" data-period="year" type="button">Jahr</button>
+              <button class="period-option" data-period="custom" type="button">Zeitraum</button>
+            </div>
+            <div class="custom-dates insights-custom-dates" hidden>
+              <label>Von <input type="date" id="insights-date-from"></label>
+              <label>Bis <input type="date" id="insights-date-to"></label>
+            </div>
+          </section>
+          <section class="summary-grid compact-summary">
+            <article class="summary-card"><div class="summary-top"><span>EINNAHMEN</span></div><div class="summary-value" id="insights-income">0,00&nbsp;€</div></article>
+            <article class="summary-card"><div class="summary-top"><span>AUSGABEN</span></div><div class="summary-value" id="insights-expense">0,00&nbsp;€</div></article>
+            <article class="summary-card"><div class="summary-top"><span>ÜBERSCHUSS</span></div><div class="summary-value" id="insights-balance">0,00&nbsp;€</div></article>
+          </section>
+          <section class="content-grid insights-grid">
+            <article class="panel trend-panel">
+              <div class="panel-heading"><div><p class="eyebrow">VERLAUF</p><h2>Einnahmen & Ausgaben</h2></div><div class="chart-legend"><span><i class="legend-income"></i> Einnahmen</span><span><i class="legend-expense"></i> Ausgaben</span></div></div>
+              <div class="chart-wrap" id="cashflow-chart" role="img" aria-label="Liniendiagramm Einnahmen und Ausgaben"><div class="empty-chart">Dein Geldfluss erscheint hier, sobald Buchungen vorhanden sind.</div></div>
+            </article>
+            <article class="panel category-panel">
+              <div class="panel-heading"><div><p class="eyebrow">AUSGABEN</p><h2>Nach Kategorie</h2></div></div>
+              <div class="category-visualization"><div id="category-donut" class="category-donut" role="img" aria-label="Ausgaben nach Kategorien"></div><div id="category-list" class="category-list"><div class="empty-state">Noch keine Ausgaben in diesem Zeitraum.</div></div></div>
+            </article>
+          </section>
+        </section>
+
         <footer class="page-footer">Moneta ist ein privater Finanzplaner und keine Anlage- oder Steuerberatung. <span>Deine Daten bleiben auf diesem Gerät.</span></footer>
       </main>
     </div>

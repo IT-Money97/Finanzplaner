@@ -17,6 +17,8 @@ body { margin: 0; min-width: 0; overflow-x: hidden; background: #f5f7f5; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 .app-shell { min-height: 100vh; }
+.page-view { min-width: 0; }
+.page-view[hidden] { display: none !important; }
 .sidebar { position: fixed; inset: 0 auto 0 0; width: 242px; background: var(--green-dark); color: #eaf4ef; padding: 28px 16px 20px; display: flex; flex-direction: column; z-index: 2; }
 .brand { display: flex; align-items: center; gap: 10px; margin: 0 0 53px 10px; color: white; text-decoration: none; font: 800 23px "Aptos Display", "Segoe UI", sans-serif; letter-spacing: -1.4px; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; color: #0f2820; background: #a4e4c7; border-radius: 10px 10px 10px 3px; font: 800 20px Manrope, sans-serif; }
@@ -68,6 +70,9 @@ h1 span { color: #98a49e; font-weight: 500; }
 .custom-dates label { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #75827b; }
 .custom-dates input { width: 116px; height: 29px; border: 1px solid #e1e8e3; border-radius: 5px; padding: 0 6px; color: #52615a; font-size: 10px; }
 .summary-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 13px; }
+.compact-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
+.compact-summary .summary-card { min-height: 99px; }
+.compact-summary .summary-value { margin-bottom: 6px; }
 .summary-card { min-height: 130px; position: relative; overflow: hidden; padding: 18px 19px 15px; background: white; border: 1px solid #e9eeeb; border-radius: 9px; }
 .balance-card { background: #143b2d; border-color: #143b2d; color: white; }
 .summary-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; color: #8e9993; font-size: 9px; letter-spacing: 1px; font-weight: 700; }
@@ -90,6 +95,24 @@ h1 span { color: #98a49e; font-weight: 500; }
 .content-grid, .lower-grid { display: grid; gap: 13px; margin-top: 14px; }
 .content-grid { grid-template-columns: 1.48fr 1fr; }
 .lower-grid { grid-template-columns: 1.48fr 1fr; }
+.dashboard-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 13px; margin-top: 14px; }
+.dashboard-panel, .page-panel { min-width: 0; border-radius: 11px; padding: 20px; }
+.dashboard-panel { min-height: 240px; }
+.quick-panel h2 { margin-bottom: 12px; }
+.quick-action { display: grid; grid-template-columns: 34px minmax(0, 1fr) 18px; align-items: center; gap: 10px; width: 100%; min-height: 55px; padding: 7px 0; border: 0; border-bottom: 1px solid #eef2ef; background: transparent; color: #34443b; text-align: left; }
+.quick-action:last-child { border-bottom: 0; }
+.quick-action:hover strong { color: #1d735a; }
+.quick-action-icon { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; font-size: 13px; }
+.quick-action > span:nth-child(2) { display: grid; gap: 4px; }
+.quick-action strong { font-size: 11px; }
+.quick-action small { color: #929d96; font-size: 9px; }
+.quick-arrow { color: #98a49d; font-size: 15px; }
+.filter-label { margin-left: auto; color: #748078; font-size: 10px; }
+.filter-select { min-width: 140px; min-height: 34px; border: 1px solid #e3eae5; border-radius: 7px; padding: 0 9px; background: #fff; color: #405047; font-size: 10px; }
+.full-list { margin-top: 5px; }
+.page-panel { margin-top: 14px; min-height: 220px; }
+.page-panel .recurring-list { margin-top: 8px; }
+.dashboard-panel .transaction-list { margin-top: 9px; }
 .panel { min-width: 0; background: white; border: 1px solid #e9eeeb; border-radius: 9px; padding: 19px 20px; }
 .trend-panel, .category-panel { min-height: 274px; }
 .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
@@ -119,30 +142,34 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
 .empty-state { padding: 20px 12px; color: #9ba59f; text-align: center; font-size: 10px; line-height: 1.5; }
 .transactions-panel, .recurring-panel { min-height: 235px; }
 .transaction-list, .recurring-list { margin-top: 14px; }
-.transaction-row { display: grid; grid-template-columns: 33px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 9px 0; border-bottom: 1px solid #f0f3f1; }
+.transaction-row { display: grid; grid-template-columns: 33px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid #f0f3f1; }
 .transaction-row:last-child { border-bottom: 0; }
 .transaction-icon { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; background: #f3f6f4; font-size: 13px; }
-.transaction-name { overflow: hidden; color: #33423a; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.transaction-details, .recurring-details { min-width: 0; }
+.transaction-name { overflow: hidden; color: #33423a; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .transaction-meta { display: flex; gap: 6px; margin-top: 4px; color: #99a49e; font-size: 9px; }
-.transaction-amount { display: flex; align-items: center; gap: 7px; color: #bd6d60; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.transaction-amount { display: flex; align-items: center; gap: 7px; color: #bd6d60; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .transaction-amount.income { color: #378862; }
-.delete-transaction { width: 22px; height: 22px; border: 0; border-radius: 5px; background: transparent; color: #a5aea9; font-size: 14px; opacity: 0; }
-.transaction-row:hover .delete-transaction, .delete-transaction:focus { opacity: 1; }
-.delete-transaction:hover { color: #b54c3c; background: #fff1ef; }
-.recurring-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px 0; border-bottom: 1px solid #f0f3f1; }
+.delete-action { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; padding: 0 9px; border: 1px solid #f0ddda; border-radius: 7px; color: #9c5a50; background: #fff9f8; font-size: 9px; font-weight: 600; white-space: nowrap; }
+.delete-action:hover { border-color: #e7bdb6; color: #943f35; background: #fff0ee; }
+.delete-icon { font-size: 14px; line-height: 1; }
+.compact-list .transaction-row { grid-template-columns: 31px minmax(0, 1fr) auto auto; gap: 8px; padding: 9px 0; }
+.compact-list .delete-action { width: 34px; min-width: 34px; padding: 0; font-size: 0; }
+.compact-list .delete-icon { font-size: 16px; }
+.recurring-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f0f3f1; }
 .recurring-row:last-child { border-bottom: 0; }
 .recurring-item-icon { width: 29px; height: 29px; display: grid; place-items: center; background: #f4f3f8; border-radius: 8px; font-size: 12px; }
-.recurring-name { overflow: hidden; color: #37453e; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.recurring-meta { margin-top: 4px; color: #9ba59f; font-size: 9px; }
+.recurring-name { overflow: hidden; color: #37453e; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.recurring-meta { margin-top: 4px; color: #89958e; font-size: 9px; line-height: 1.5; }
 .recurring-amount { display: flex; align-items: center; gap: 8px; color: #bd6d60; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .recurring-amount.income { color: #378862; }
-.delete-recurring { border: 0; background: none; color: #a5aea9; font-size: 14px; opacity: 0; }
-.recurring-row:hover .delete-recurring, .delete-recurring:focus { opacity: 1; }
 .recurring-total { display: flex; justify-content: space-between; border-top: 1px solid #edf1ee; padding-top: 11px; margin-top: 5px; color: #77847c; font-size: 9px; }
 .recurring-total strong { color: #324239; }
 .page-footer { margin-top: 18px; color: #a0aaa4; font-size: 9px; }
 .page-footer span { float: right; }
-.entry-dialog { width: min(100% - 28px, 470px); max-height: min(92dvh, 750px); overflow-y: auto; overscroll-behavior: contain; border: 0; border-radius: 14px; padding: 25px; color: #24312b; box-shadow: 0 20px 70px #10271f33; }
+.entry-dialog { width: min(100% - 28px, 470px); max-height: min(92dvh, 750px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; border: 0; border-radius: 14px; padding: 25px; color: #24312b; box-shadow: 0 20px 70px #10271f33; }
+.entry-dialog[open] { position: fixed; margin: auto; }
+.entry-dialog form { min-width: 0; }
 .entry-dialog::backdrop { background: #10231ccc; backdrop-filter: blur(3px); }
 .dialog-heading { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
 .dialog-heading .eyebrow { margin-bottom: 6px; }
@@ -158,7 +185,7 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
 .description-input input { flex: 1; }
 .mic-button { width: 40px; border: 1px solid #dce9df; border-radius: 6px; color: #287252; background: #f1f8f4; font-size: 17px; }
 .mic-button.listening { color: white; background: #c95e52; animation: pulse 1s infinite alternate; }
-.voice-hint { margin: -7px 0 13px; color: #9aa59f; font-size: 9px; }
+.voice-hint { max-width: 100%; margin: -7px 0 13px; color: #77857d; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 .amount-input { display: flex; align-items: center; border: 1px solid #e3eae5; border-radius: 6px; padding-right: 10px; }
 .amount-input:focus-within { border-color: #83bb9c; box-shadow: 0 0 0 3px #dff1e6; }
@@ -175,12 +202,12 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
 .repeat-toggle small { color: #9aa59f; font-size: 9px; }
 .repeat-options { margin-top: 13px; }
 .voice-dialog { width: min(100% - 28px, 560px); }
-.voice-intro { margin: -8px 0 15px; color: #738078; font-size: 11px; line-height: 1.6; }
+.voice-intro { max-width: 100%; margin: -8px 0 15px; color: #65736b; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
 .voice-dialog textarea { display: block; width: 100%; min-height: 116px; resize: vertical; border: 1px solid #e3eae5; border-radius: 7px; padding: 11px; color: #33423a; font: inherit; font-size: 12px; line-height: 1.6; }
 .voice-dialog textarea:focus { border-color: #83bb9c; outline: 3px solid #dff1e6; }
 .voice-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
 .voice-preview { border-top: 1px solid #e8eee9; margin-top: 16px; padding-top: 14px; }
-.preview-heading { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; color: #87928c; font-size: 10px; }
+.preview-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; margin-bottom: 10px; color: #748078; font-size: 10px; }
 .preview-heading strong { color: #365744; }
 .voice-draft { margin: 9px 0; padding: 12px; border: 1px solid #e7ede9; border-radius: 8px; background: #fbfcfb; }
 .voice-draft-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; color: #367151; font-size: 10px; }
@@ -198,6 +225,7 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
   .summary-grid { grid-template-columns: 1fr 1fr; }
   .summary-card { min-height: 120px; }
   .content-grid, .lower-grid { grid-template-columns: 1fr 1fr; }
+  .dashboard-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 760px) {
   body { padding-bottom: 64px; }
@@ -232,8 +260,8 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
   .summary-foot { gap: 3px; }
   .muted, .balance-caption { font-size: 8px; }
   .balance-badge { font-size: 7px; }
-  .content-grid, .lower-grid { grid-template-columns: minmax(0, 1fr); gap: 9px; margin-top: 9px; }
-  .panel { min-width: 0; padding: 15px 13px; }
+  .content-grid, .lower-grid, .dashboard-grid { grid-template-columns: minmax(0, 1fr); gap: 9px; margin-top: 9px; }
+  .panel, .dashboard-panel, .page-panel { min-width: 0; padding: 15px 13px; }
   .trend-panel, .category-panel { min-height: unset; }
   .chart-wrap { min-height: 190px; margin-top: 10px; }
   .chart-wrap svg { height: 185px; }
@@ -244,14 +272,24 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
   .category-name, .category-amount { font-size: 9px; }
   .category-amount { min-width: 56px; }
   .transactions-panel, .recurring-panel { min-height: unset; }
-  .delete-transaction, .delete-recurring { opacity: 1; }
-  .transaction-row, .recurring-row { min-width: 0; grid-template-columns: 29px minmax(0, 1fr) auto; gap: 7px; }
+  .transaction-row, .recurring-row { min-width: 0; grid-template-columns: 29px minmax(0, 1fr) auto auto; gap: 7px; }
+  .transaction-row { padding: 10px 0; }
+  .delete-action { min-height: 30px; padding: 0 7px; font-size: 8px; }
+  .compact-list .delete-action { width: 32px; min-width: 32px; }
   .transaction-amount, .recurring-amount { gap: 4px; font-size: 9px; }
   .transaction-name, .recurring-name { font-size: 10px; }
+  .recurring-meta { font-size: 9px; overflow-wrap: anywhere; }
   .page-footer { line-height: 1.7; }
   .page-footer span { float: none; display: block; }
-  .entry-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px - env(safe-area-inset-top)); padding: 20px 16px; border-radius: 12px; }
-  .dialog-actions { position: sticky; bottom: -20px; padding: 11px 0 2px; background: #fff; }
+  .entry-dialog[open] { inset: 0; width: calc(100% - 20px); max-width: 560px; max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); margin: auto; padding: 18px 15px; border-radius: 12px; }
+  .dialog-actions { flex-wrap: wrap; padding-top: 8px; }
+  .dialog-actions .button { flex: 1 1 auto; min-width: 118px; white-space: normal; }
+  .dialog-heading { gap: 12px; margin-bottom: 15px; }
+  .dialog-heading > div { min-width: 0; }
+  .dialog-heading h2 { line-height: 1.3; overflow-wrap: anywhere; }
+  .voice-intro, .voice-hint, .preview-heading { max-width: 100%; overflow-wrap: anywhere; }
+  .voice-preview { max-width: 100%; overflow: hidden; }
+  .voice-actions .button { flex: 1 1 145px; }
   .field-row { gap: 8px; }
   .voice-draft { padding: 10px; }
 }
@@ -264,6 +302,12 @@ h2 { margin: 0; color: #22302a; font: 700 14px "Aptos Display", "Segoe UI", sans
   .summary-foot { align-items: flex-start; }
   .balance-caption, .muted { line-height: 1.35; }
   .heading-actions .button { font-size: 9px; }
+  .transaction-row, .recurring-row { grid-template-columns: 25px minmax(0, 1fr) auto; gap: 6px; }
+  .transaction-row .delete-action, .recurring-row .delete-action { grid-column: 2 / -1; justify-self: end; min-height: 27px; }
+  .transaction-row .transaction-amount, .recurring-row .recurring-amount { grid-column: 3; grid-row: 1; }
+  .transaction-row .delete-action, .recurring-row .delete-action { grid-row: 2; }
+  .compact-list .transaction-row .delete-action { grid-column: 3; grid-row: 1; width: 30px; min-width: 30px; }
+  .compact-list .transaction-row .transaction-amount { grid-column: 3; grid-row: 2; justify-self: end; }
   .category-visualization { grid-template-columns: minmax(84px, .7fr) minmax(0, 1.5fr); gap: 6px; }
   .category-donut svg { width: min(100%, 124px); }
 }

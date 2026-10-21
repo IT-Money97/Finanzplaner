@@ -294,13 +294,20 @@
     return { records, rejected };
   }
 
+  function activeDateInput(id) {
+    const insightsActive = $('.page-view[data-page="insights"]')?.classList.contains("active");
+    if (insightsActive && id === "date-from") return $("#insights-date-from");
+    if (insightsActive && id === "date-to") return $("#insights-date-to");
+    return $(`#${id}`);
+  }
+
   function getRange() {
     const now = new Date();
     let start;
     let end;
     if (period === "custom") {
-      const from = $("#date-from").value;
-      const to = $("#date-to").value;
+      const from = activeDateInput("date-from").value;
+      const to = activeDateInput("date-to").value;
       start = from || dateString(new Date(now.getFullYear(), now.getMonth(), 1));
       end = to || dateString(now);
     } else if (period === "year") {
@@ -384,11 +391,20 @@
     $("#income-value").textContent = euro(income);
     $("#expense-value").textContent = euro(expense);
     $("#fixed-value").textContent = euro(fixed);
+    $("#transactions-period-label").textContent = periodLabel();
+    $("#insights-period-label").textContent = periodLabel();
+    $("#transactions-income").textContent = euro(income);
+    $("#transactions-expense").textContent = euro(expense);
+    $("#insights-income").textContent = euro(income);
+    $("#insights-expense").textContent = euro(expense);
+    $("#insights-balance").textContent = euro(income - expense);
     $("#balance-value").classList.toggle("negative-value", income < expense);
+    $("#insights-balance").classList.toggle("negative-value", income < expense);
     renderChart(start, end, rangeTransactions);
     renderCategories(rangeTransactions);
     renderTransactions(start, end);
     renderRecurring(start, end);
+    renderRecurringSummary();
   }
 
   function renderChart(start, end, items) {
@@ -488,19 +504,30 @@
   }
 
   function renderTransactions(start, end) {
-    const list = state.transactions.filter((item) => item.date >= start && item.date <= end).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
-    $("#transaction-list").innerHTML = list.length ? list.map((item) => {
+    const filter = $("#transaction-filter").value;
+    const list = state.transactions
+      .filter((item) => item.date >= start && item.date <= end && (filter === "all" || item.kind === filter))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const row = (item) => {
       const [icon] = categoryMeta[item.category] || categoryMeta.Sonstiges;
-      return `<div class="transaction-row"><span class="transaction-icon">${icon}</span><div><div class="transaction-name">${escapeHtml(item.description)}</div><div class="transaction-meta"><span>${item.category}</span><span>·</span><span>${formatDate(item.date)}</span></div></div><div class="transaction-amount ${item.kind}">${item.kind === "income" ? "+" : "−"}${euro(item.amount)}<button class="delete-transaction" type="button" data-delete-transaction="${item.id}" aria-label="Buchung ${escapeHtml(item.description)} löschen">×</button></div></div>`;
-    }).join("") : '<div class="empty-state">Noch keine Buchungen. Füge deine erste hinzu.</div>';
+      return `<div class="transaction-row"><span class="transaction-icon">${icon}</span><div class="transaction-details"><div class="transaction-name">${escapeHtml(item.description)}</div><div class="transaction-meta"><span>${item.category}</span><span>·</span><span>${formatDate(item.date)}</span></div></div><div class="transaction-amount ${item.kind}">${item.kind === "income" ? "+" : "−"}${euro(item.amount)}</div><button class="delete-action" type="button" data-delete-transaction="${item.id}" aria-label="Buchung ${escapeHtml(item.description)} löschen"><span class="delete-icon" aria-hidden="true">⌫</span><span>Löschen</span></button></div>`;
+    };
+    const empty = filter === "all" ? "In diesem Zeitraum gibt es noch keine Buchungen." : `Keine ${filter === "income" ? "Einnahmen" : "Ausgaben"} in diesem Zeitraum.`;
+    $("#transaction-list").innerHTML = list.length ? list.map(row).join("") : `<div class="empty-state">${empty}</div>`;
+    const recent = [...state.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+    $("#recent-transactions").innerHTML = recent.length
+      ? recent.map(row).join("")
+      : '<div class="empty-state">Noch keine Buchungen. Füge deine erste hinzu.</div>';
+    $("#transactions-count").textContent = new Intl.NumberFormat("de-DE").format(list.length);
+    $("#transactions-list-title").textContent = `${filter === "all" ? "Alle Buchungen" : filter === "income" ? "Einnahmen" : "Ausgaben"} · ${list.length}`;
   }
 
   function renderRecurring(start, end) {
     const upcoming = state.recurring.map((item) => ({ ...item, next: occurrences(item, today, item.end || "9999-12-31")[0]?.date })).filter((item) => item.next).sort((a, b) => a.next.localeCompare(b.next));
     const list = $("#recurring-list");
-    list.innerHTML = upcoming.length ? upcoming.slice(0, 5).map((item) => {
+    list.innerHTML = upcoming.length ? upcoming.map((item) => {
       const [icon] = categoryMeta[item.category] || categoryMeta.Sonstiges;
-      return `<div class="recurring-row"><span class="recurring-item-icon">${icon}</span><div><div class="recurring-name">${escapeHtml(item.description)}</div><div class="recurring-meta">${item.frequency === "monthly" ? "Monatlich" : "Jährlich"} · nächstes Mal ${formatDate(item.next)}</div></div><div class="recurring-amount ${item.kind}">${item.kind === "income" ? "+" : "−"}${euro(item.amount)}<button class="delete-recurring" type="button" data-delete-recurring="${item.id}" aria-label="Regel ${escapeHtml(item.description)} löschen">×</button></div></div>`;
+      return `<div class="recurring-row"><span class="recurring-item-icon">${icon}</span><div class="recurring-details"><div class="recurring-name">${escapeHtml(item.description)}</div><div class="recurring-meta">${item.kind === "income" ? "Einnahme" : "Ausgabe"} · ${item.category} · ${item.frequency === "monthly" ? "monatlich" : "jährlich"} · nächste Zahlung ${formatDate(item.next)}</div></div><div class="recurring-amount ${item.kind}">${item.kind === "income" ? "+" : "−"}${euro(item.amount)}</div><button class="delete-action" type="button" data-delete-recurring="${item.id}" aria-label="Regel ${escapeHtml(item.description)} löschen"><span class="delete-icon" aria-hidden="true">⌫</span><span>Entfernen</span></button></div>`;
     }).join("") : '<div class="empty-state">Füge Abos, Versicherungen oder regelmäßige Einnahmen hinzu.</div>';
     const inPeriod = state.recurring.flatMap((rule) => occurrences(rule, start, end));
     const recurringIncome = inPeriod.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0);
@@ -508,6 +535,53 @@
     const total = $("#recurring-total");
     total.hidden = !inPeriod.length;
     total.innerHTML = `<span>Im Zeitraum: Einnahmen ${euro(recurringIncome)} · Ausgaben ${euro(recurringExpense)}</span><strong>${state.recurring.length} ${state.recurring.length === 1 ? "Regel" : "Regeln"}</strong>`;
+  }
+
+  function renderRecurringSummary() {
+    const monthlyIncome = state.recurring.reduce((sum, item) => {
+      if (item.kind !== "income") return sum;
+      return sum + item.amount / (item.frequency === "yearly" ? 12 : 1);
+    }, 0);
+    const monthlyExpense = state.recurring.reduce((sum, item) => {
+      if (item.kind !== "expense") return sum;
+      return sum + item.amount / (item.frequency === "yearly" ? 12 : 1);
+    }, 0);
+    $("#recurring-monthly-income").textContent = euro(monthlyIncome);
+    $("#recurring-monthly-expense").textContent = euro(monthlyExpense);
+    $("#recurring-count").textContent = new Intl.NumberFormat("de-DE").format(state.recurring.length);
+  }
+
+  function switchPage(pageId, updateHash = true) {
+    const page = $(`.page-view[data-page="${pageId}"]`) || $('.page-view[data-page="dashboard"]');
+    $$(".page-view").forEach((view) => {
+      const active = view === page;
+      view.hidden = !active;
+      view.classList.toggle("active", active);
+    });
+    $$("[data-page-link]").forEach((link) => {
+      const active = link.getAttribute("href") === `#${page.id}`;
+      link.classList.toggle("active", active);
+      if (active) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+    if (updateHash && location.hash !== `#${page.id}`) history.replaceState(null, "", `#${page.id}`);
+    window.scrollTo(0, 0);
+    render();
+  }
+
+  function onCustomDateChange(event) {
+    const date = event.currentTarget;
+    if (date.id === "date-from") $("#insights-date-from").value = date.value;
+    else if (date.id === "date-to") $("#insights-date-to").value = date.value;
+    else if (date.id === "insights-date-from") $("#date-from").value = date.value;
+    else $("#date-to").value = date.value;
+    render();
+  }
+
+  function navigatePeriod(direction) {
+    if (period === "custom") return;
+    periodOffset += direction;
+    render();
   }
 
   function showToast(message) {
@@ -518,9 +592,9 @@
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
   }
 
-  function openTransactionDialog() {
+  function openTransactionDialog(kind = "expense") {
     $("#transaction-form").reset();
-    transactionKind = "expense";
+    transactionKind = kind;
     $$(".entry-tab").forEach((tab) => tab.classList.toggle("selected", tab.dataset.kind === transactionKind));
     setCategories($("#category"), transactionKind);
     $("#transaction-date").value = today;
@@ -770,9 +844,13 @@
     periodOffset = 0;
     $$(".period-option").forEach((button) => button.classList.toggle("active", button.dataset.period === period));
     $("#custom-dates").hidden = period !== "custom";
+    $(".insights-custom-dates").hidden = period !== "custom";
     if (period === "custom") {
-      $("#date-from").value ||= dateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+      const firstDay = dateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+      $("#date-from").value ||= firstDay;
+      $("#insights-date-from").value ||= $("#date-from").value;
       $("#date-to").value ||= today;
+      $("#insights-date-to").value ||= $("#date-to").value;
     }
     render();
   }
@@ -818,8 +896,13 @@
   }
 
   function bindEvents() {
-    $("#open-transaction").addEventListener("click", openTransactionDialog);
+    $("#open-transaction").addEventListener("click", () => openTransactionDialog());
+    $("#transactions-add").addEventListener("click", () => openTransactionDialog());
+    $("#transactions-voice").addEventListener("click", () => $("#open-voice-entry").click());
     $("#add-recurring").addEventListener("click", openRecurringDialog);
+    $("#quick-add-expense").addEventListener("click", () => openTransactionDialog("expense"));
+    $("#quick-add-income").addEventListener("click", () => openTransactionDialog("income"));
+    $("#quick-recurring").addEventListener("click", () => switchPage("recurring"));
     $("#open-voice-entry").addEventListener("click", () => {
       bulkVoiceActive = false;
       voiceDrafts = [];
@@ -937,11 +1020,11 @@
       event.currentTarget.closest("dialog").close();
       showToast("Wiederkehrende Buchung gespeichert.");
     });
-    $("#period-prev").addEventListener("click", () => movePeriod(-1));
-    $("#period-next").addEventListener("click", () => movePeriod(1));
+    ["#period-prev", "#transactions-period-prev", "#insights-period-prev"].forEach((selector) => $(selector).addEventListener("click", () => navigatePeriod(-1)));
+    ["#period-next", "#transactions-period-next", "#insights-period-next"].forEach((selector) => $(selector).addEventListener("click", () => navigatePeriod(1)));
     $$(".period-option").forEach((button) => button.addEventListener("click", () => updatePeriod(button.dataset.period)));
-    $("#date-from").addEventListener("change", render);
-    $("#date-to").addEventListener("change", render);
+    ["#date-from", "#date-to", "#insights-date-from", "#insights-date-to"].forEach((selector) => $(selector).addEventListener("change", onCustomDateChange));
+    $("#transaction-filter").addEventListener("change", render);
     $("#export-button").addEventListener("click", exportData);
     $("#import-button").addEventListener("click", () => $("#import-file").click());
     $("#import-file").addEventListener("change", (event) => {
@@ -949,20 +1032,13 @@
       if (file) importData(file);
       event.currentTarget.value = "";
     });
-    $("#view-all").addEventListener("click", () => {
-      $("#transactions").scrollIntoView({ behavior: "smooth" });
-      showToast("Die letzten Buchungen für den Zeitraum werden angezeigt.");
-    });
-    $("#category-period").addEventListener("click", () => {
-      $("#insights").scrollIntoView({ behavior: "smooth" });
-      showToast("Die fünf größten Kategorien für den Zeitraum.");
-    });
     document.addEventListener("click", (event) => {
       const transactionButton = event.target.closest("[data-delete-transaction]");
       const recurringButton = event.target.closest("[data-delete-recurring]");
       if (transactionButton) {
         const index = state.transactions.findIndex((item) => item.id === transactionButton.dataset.deleteTransaction);
         if (index < 0) return;
+        if (!window.confirm(`Buchung „${state.transactions[index].description}“ löschen?`)) return;
         const [removed] = state.transactions.splice(index, 1);
         if (!saveState()) {
           state.transactions.splice(index, 0, removed);
@@ -974,6 +1050,7 @@
       if (recurringButton) {
         const index = state.recurring.findIndex((item) => item.id === recurringButton.dataset.deleteRecurring);
         if (index < 0) return;
+        if (!window.confirm(`Wiederholung „${state.recurring[index].description}“ löschen?`)) return;
         const [removed] = state.recurring.splice(index, 1);
         if (!saveState()) {
           state.recurring.splice(index, 0, removed);
@@ -983,13 +1060,12 @@
         showToast("Wiederholung gelöscht.");
       }
     });
-    $$(".nav-link[href]").forEach((link) => link.addEventListener("click", () => {
-      $$(".nav-link[href]").forEach((item) => {
-        item.classList.toggle("active", item === link);
-        if (item === link) item.setAttribute("aria-current", "page");
-        else item.removeAttribute("aria-current");
-      });
+    $$("[data-page-link]").forEach((link) => link.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchPage(link.hash.slice(1));
     }));
+    $$("[data-go-page]").forEach((button) => button.addEventListener("click", () => switchPage(button.dataset.goPage)));
+    window.addEventListener("hashchange", () => switchPage(location.hash.slice(1) || "dashboard", false));
   }
 
   function init() {
@@ -1000,6 +1076,7 @@
     $("#transaction-date").value = today;
     $("#recurring-start").value = today;
     bindEvents();
+    switchPage(location.hash.slice(1) || "dashboard", false);
     render();
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
       navigator.serviceWorker.register("./sw.js").catch((error) => console.error("Offline-Modus konnte nicht eingerichtet werden.", error));
