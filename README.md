@@ -5,16 +5,17 @@ Eine responsive, installierbare Finanzplaner-PWA ohne kostenpflichtige Abhängig
 ## Funktionen
 
 - Einnahmen und Ausgaben mit Datum und Kategorie erfassen
-- Wiederkehrende monatliche und jährliche Buchungen planen
+- Wiederkehrende monatliche und jährliche Einnahmen und Ausgaben planen, inklusive Buchungstag
 - Monat, 3 Monate, Jahr oder einen eigenen Zeitraum auswerten
-- Einnahmen/Ausgaben grafisch vergleichen und Ausgaben nach Kategorie sehen
-- Optionale Spracheingabe im Buchungsformular; lokale Regeln schlagen Betrag und Kategorie vor
+- Einnahmen/Ausgaben als Liniendiagramm vergleichen und Kategorien als Donut-Diagramm sehen
+- Mehrere Buchungen per fortlaufender Spracheingabe erfassen, lokal erkennen und vor dem Speichern prüfen
+- Wiederkehrende Buchungen direkt beim Erfassen anlegen
 - JSON-Export und -Import zur Sicherung und Wiederherstellung der eigenen Daten
 - Offline-Nutzung nach dem ersten Laden über den Service Worker
 
 ## Daten & Datenschutz
 
-Buchungen werden ausschließlich im lokalen Speicher des Browsers auf diesem Gerät abgelegt. Es gibt kein Benutzerkonto, keinen Server-Sync und keinen KI-Anbieter. Ein Backup wird über **Daten exportieren** heruntergeladen und kann über **Daten importieren** auf einem Gerät wiederhergestellt werden; der Import ersetzt nach Bestätigung die dort gespeicherten Daten. Browser-Spracheingabe ist nicht in jedem Browser verfügbar; manche Browser verarbeiten Spracheingaben über ihren Anbieter. Für sensible Einträge kann die Spracheingabe ausgelassen werden.
+Buchungen werden ausschließlich im lokalen Speicher des Browsers auf diesem Gerät abgelegt. Es gibt kein Benutzerkonto, keinen Server-Sync und keinen KI-Anbieter. Die Spracheingabe verwendet lokale Zuordnungsregeln, nicht generative KI. Browser-Spracherkennung ist nicht in jedem Browser verfügbar und kann Audio an den Spracherkennungsanbieter des Browsers übermitteln; bei fehlendem Support kann der erkannte Text von Hand eingegeben werden. Erkannte Buchungen werden vor dem Speichern einzeln überprüfbar angezeigt. Ein Backup wird über **Daten exportieren** heruntergeladen und kann über **Daten importieren** auf einem Gerät wiederhergestellt werden; der Import ersetzt nach Bestätigung die dort gespeicherten Daten.
 
 ## Lokal starten
 

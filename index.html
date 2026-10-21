@@ -63,9 +63,12 @@
             <h1>Dein Geld. <span>Dein Überblick.</span></h1>
             <p class="subtitle">Ein klarer Blick auf das, was reinkommt und rausgeht.</p>
           </div>
-          <button class="button button-primary" id="open-transaction" type="button">
-            <span class="button-plus">+</span> Buchung hinzufügen
-          </button>
+          <div class="heading-actions">
+            <button class="button button-secondary" id="open-voice-entry" type="button">♩ Mehrere per Audio</button>
+            <button class="button button-primary" id="open-transaction" type="button">
+              <span class="button-plus">+</span> Buchung hinzufügen
+            </button>
+          </div>
         </section>
 
         <section class="overview-toolbar" aria-label="Zeitraum auswählen">
@@ -125,8 +128,11 @@
               <div><p class="eyebrow">WOHIN GEHT'S?</p><h2>Ausgaben nach Kategorie</h2></div>
               <button class="text-button" id="category-period" type="button">Details <span>↗</span></button>
             </div>
-            <div id="category-list" class="category-list">
-              <div class="empty-state">Noch keine Ausgaben in diesem Zeitraum.</div>
+            <div class="category-visualization">
+              <div id="category-donut" class="category-donut" role="img" aria-label="Ausgaben nach Kategorien"></div>
+              <div id="category-list" class="category-list">
+                <div class="empty-state">Noch keine Ausgaben in diesem Zeitraum.</div>
+              </div>
             </div>
           </article>
         </section>
@@ -176,15 +182,44 @@
           <label class="field-label">Betrag
             <span class="amount-input"><input id="amount" name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" required><span>€</span></span>
           </label>
-          <label class="field-label">Datum<input id="transaction-date" name="date" type="date" required></label>
+          <label class="field-label"><span id="transaction-date-label">Datum</span><input id="transaction-date" name="date" type="date" required></label>
         </div>
         <label class="field-label" for="category">Kategorie</label>
         <select id="category" name="category"></select>
+        <label class="repeat-toggle"><input id="transaction-recurring" type="checkbox"> <span><strong>Wiederholt sich</strong><small>Zum Beispiel Gehalt oder Abo</small></span></label>
+        <div class="repeat-options" id="transaction-repeat-options" hidden>
+          <label class="field-label">Intervall
+            <select id="transaction-frequency"><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select>
+          </label>
+        </div>
         <div class="dialog-actions">
           <button class="button button-quiet" type="button" data-close-dialog>Abbrechen</button>
           <button class="button button-primary" type="submit">Buchung speichern <span>→</span></button>
         </div>
       </form>
+    </dialog>
+
+    <dialog class="entry-dialog voice-dialog" id="voice-dialog" aria-labelledby="voice-dialog-title">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">MEHRERE BUCHUNGEN AUF EINMAL</p><h2 id="voice-dialog-title">Einsprechen. Prüfen. Übernehmen.</h2></div>
+        <button class="dialog-close" type="button" data-close-dialog aria-label="Schließen">×</button>
+      </div>
+      <p class="voice-intro">Sprich jeden Betrag mit Anlass und Rhythmus, z. B.: „12,99 Euro Netflix jeden Monat als Ausgabe. 3.000 Euro Gehalt jeden Monat am 25.“</p>
+      <label class="field-label" for="voice-transcript">Deine Ansagen</label>
+      <textarea id="voice-transcript" rows="5" placeholder="Du kannst hier sprechen oder Text eingeben. Eine Buchung pro Satz oder Zeile."></textarea>
+      <div class="voice-actions">
+        <button class="button button-secondary" id="bulk-voice-button" type="button">♩ Aufnahme starten</button>
+        <button class="button button-primary" id="analyze-voice-button" type="button">Ansagen erkennen</button>
+      </div>
+      <p class="voice-hint" id="bulk-voice-hint">Erkanntes bitte vor dem Speichern prüfen. Spracheingabe hängt von Browser und Mikrofonfreigabe ab.</p>
+      <section class="voice-preview" id="voice-preview" aria-live="polite" hidden>
+        <div class="preview-heading"><strong id="preview-count"></strong><span>Bitte erkannte Buchungen prüfen</span></div>
+        <div id="voice-draft-list"></div>
+        <div class="dialog-actions">
+          <button class="button button-quiet" id="clear-voice-drafts" type="button">Zurücksetzen</button>
+          <button class="button button-primary" id="save-voice-drafts" type="button">Alle übernehmen <span>→</span></button>
+        </div>
+      </section>
     </dialog>
 
     <dialog class="entry-dialog" id="recurring-dialog" aria-labelledby="recurring-dialog-title">
@@ -206,7 +241,7 @@
           <label class="field-label">Kategorie<select id="recurring-category" name="category"></select></label>
         </div>
         <div class="field-row">
-          <label class="field-label">Startdatum<input id="recurring-start" name="start" type="date" required></label>
+          <label class="field-label">Nächster Zahlungstag<input id="recurring-start" name="start" type="date" required></label>
           <label class="field-label">Intervall<select id="recurring-frequency" name="frequency"><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select></label>
         </div>
         <label class="field-label">Enddatum <span class="optional-label">optional</span><input id="recurring-end" name="end" type="date"></label>

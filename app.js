@@ -23,6 +23,8 @@
   let recurringKind = "expense";
   let toastTimer;
   let speechRecognition;
+  let bulkVoiceActive = false;
+  let voiceDrafts = [];
 
   function dateString(date) {
     const year = date.getFullYear();
@@ -115,9 +117,28 @@
   }
 
   function parseSpokenAmount(text) {
-    const match = text.match(/(?:€\s*)?(\d{1,3}(?:[.\s]\d{3})*(?:[,.]\d{1,2})?|\d+(?:[,.]\d{1,2})?)\s*(?:€|euro|eur)?/i);
-    if (!match) return null;
-    const raw = match[1].replace(/\s/g, "");
+    const numberPattern = "\\d{1,3}(?:[.\\s]\\d{3})*(?:[,.]\\d{1,2})?|\\d+(?:[,.]\\d{1,2})?";
+    const withCurrency = text.match(new RegExp(`(?:€\\s*(${numberPattern})|(${numberPattern})\\s*(?:€|euro|eur))`, "i"));
+    if (withCurrency) {
+      const amount = normalizeAmount(withCurrency[1] || withCurrency[2]);
+      if (!amount || !withCurrency[2]) return amount;
+      const cents = spokenCentsAfterCurrency(text);
+      return cents === null ? amount : amount + cents / 100;
+    }
+    const spokenAmount = parseGermanAmount(text);
+    if (spokenAmount) return spokenAmount;
+    const numericMatches = [...text.matchAll(new RegExp(numberPattern, "g"))];
+    const match = numericMatches.find((candidate) => {
+      const before = text.slice(Math.max(0, candidate.index - 16), candidate.index);
+      const after = text.slice(candidate.index + candidate[0].length);
+      return !/\b(?:am|jeden|jedem|den)\s*$/i.test(before) &&
+        !/^\s*\.?\s*(?:(?:des|im)\s*)?monats?\b/i.test(after);
+    });
+    return match ? normalizeAmount(match[0]) : null;
+  }
+
+  function normalizeAmount(value) {
+    const raw = value.replace(/\s/g, "");
     let normalized;
     if (raw.includes(",") && raw.includes(".")) normalized = raw.replace(/\./g, "").replace(",", ".");
     else if (raw.includes(",")) normalized = raw.replace(",", ".");
@@ -125,6 +146,152 @@
     else normalized = raw;
     const amount = Number(normalized);
     return Number.isFinite(amount) && amount > 0 ? amount : null;
+  }
+
+  function parseGermanAmount(text) {
+    const euroIndex = text.search(/\b(?:euro|eur)\b/i);
+    if (euroIndex >= 0) {
+      const whole = parseGermanWordNumber(text.slice(0, euroIndex));
+      if (!whole) return null;
+      const suffix = text.slice(euroIndex).replace(/^\s*(?:euro|eur)\b/i, "");
+      const cents = spokenCentsFromText(suffix);
+      return cents === null ? whole : whole + cents / 100;
+    }
+    return parseGermanWordNumber(text);
+  }
+
+  function spokenCentsAfterCurrency(text) {
+    const euroMatch = text.match(/\b(?:euro|eur)\b/i);
+    if (!euroMatch) return null;
+    return spokenCentsFromText(text.slice(euroMatch.index + euroMatch[0].length));
+  }
+
+  function spokenCentsFromText(text) {
+    const match = text.match(/^\s*(?:und\s+)?(\d{1,2}|[a-zäöüß]+)(?:\s*(?:cent|cents))?\b/i);
+    if (!match) return null;
+    const cents = /^\d+$/.test(match[1]) ? Number(match[1]) : parseGermanWordNumber(match[1]);
+    return Number.isFinite(cents) && cents > 0 && cents < 100 ? cents : null;
+  }
+
+  function parseGermanWordNumber(text) {
+    const numberWords = {
+      null: 0, ein: 1, eine: 1, einen: 1, eins: 1, zwei: 2, drei: 3, vier: 4, fünf: 5, sechs: 6,
+      sieben: 7, acht: 8, neun: 9, zehn: 10, elf: 11, zwölf: 12, dreizehn: 13, vierzehn: 14,
+      fünfzehn: 15, sechzehn: 16, siebzehn: 17, achtzehn: 18, neunzehn: 19, zwanzig: 20,
+      dreißig: 30, dreissig: 30, vierzig: 40, fünfzig: 50, sechzig: 60, siebzig: 70, achtzig: 80,
+      neunzig: 90, hundert: 100, tausend: 1000
+    };
+    const unitWords = [["ein", 1], ["zwei", 2], ["drei", 3], ["vier", 4], ["fünf", 5], ["sechs", 6], ["sieben", 7], ["acht", 8], ["neun", 9]];
+    const tensWords = [["zwanzig", 20], ["dreißig", 30], ["dreissig", 30], ["vierzig", 40], ["fünfzig", 50], ["sechzig", 60], ["siebzig", 70], ["achtzig", 80], ["neunzig", 90]];
+    for (const [unitWord, unit] of unitWords) {
+      for (const [tenWord, ten] of tensWords) numberWords[`${unitWord}und${tenWord}`] = ten + unit;
+      numberWords[`${unitWord}hundert`] = unit * 100;
+      numberWords[`${unitWord}tausend`] = unit * 1000;
+    }
+    const words = text.toLocaleLowerCase("de-DE").match(/\b[a-zäöüß]+\b/g) || [];
+    const units = words.map((word) => numberWords[word]).filter((value) => Number.isFinite(value));
+    if (!units.length) return null;
+    let total = 0;
+    let current = 0;
+    for (const value of units) {
+      if (value === 100 || value === 1000) {
+        current = Math.max(1, current) * value;
+        if (value === 1000) {
+          total += current;
+          current = 0;
+        }
+      } else if (value >= 20 && value < 100 && current > 0 && current < 10) current += value;
+      else current += value;
+    }
+    total += current;
+    if (/\b(komma|und)\b/.test(text.toLocaleLowerCase("de-DE"))) {
+      const decimals = text.toLocaleLowerCase("de-DE").split(/\b(?:komma|und)\b/)[1];
+      if (decimals && /\b(cents?|cent|pfennig)\b/.test(decimals)) {
+        const decimalUnits = (decimals.match(/\b[a-zäöüß]+\b/g) || [])
+          .map((word) => numberWords[word]).filter((value) => Number.isFinite(value));
+        const decimal = decimalUnits.reduce((sum, value) => sum + value, 0);
+        return total + decimal / 100;
+      }
+    }
+    return total > 0 && total <= 10000000 ? total : null;
+  }
+
+  function splitVoiceStatements(text) {
+    return text
+      .replace(/\r/g, "\n")
+      .replace(/(\d)\.(?=\d)/g, "$1§MONETA_DOT§")
+      .replace(/\b(\d{1,2})\.(?=\s*(?:des|im|jeden|monat|als|kriege|bekomme|erhalte)\b)/gi, "$1 ")
+      .split(/\n+|[.!?;]+/g)
+      .map((statement) => statement.replace(/§MONETA_DOT§/g, "."))
+      .flatMap((statement) => statement.split(/\s+(?:und dann|außerdem|zusätzlich|danach)\s+/i))
+      .map((statement) => statement.trim())
+      .filter(Boolean);
+  }
+
+  function voiceKind(statement) {
+    return /\b(einnahme|einnahmen|gehalt|lohn|bekomme|bekommst|erhalte|erhält|verdiene|verdienst|rückerstattung|erstattung)\b/i.test(statement)
+      ? "income" : "expense";
+  }
+
+  function voiceFrequency(statement) {
+    if (/\b(jährlich|jährliche|jedes jahr|pro jahr|jährlich wiederkehrend)\b/i.test(statement)) return "yearly";
+    if (/\b(monatlich|monatliche|jeden monat|jedes monat|pro monat|(?:jeden|am)\s+\d{1,2}\.?\s*(?:(?:des|im)\s*)?monats?)\b/i.test(statement)) return "monthly";
+    return "once";
+  }
+
+  function recurringDay(statement) {
+    const match = statement.match(/\b(?:jeden\s+)?(\d{1,2})\.?\s*(?:tag\s+)?(?:des|im)?\s*monats\b|\bam\s+(\d{1,2})\.?/i);
+    const day = match ? Number(match[1] || match[2]) : null;
+    return day && day <= 31 ? day : null;
+  }
+
+  function nextOccurrenceForDay(day, frequency) {
+    const now = new Date();
+    const monthOffset = frequency === "monthly" && day < now.getDate() ? 1 : 0;
+    const first = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const year = frequency === "yearly" ? now.getFullYear() : first.getFullYear();
+    const month = frequency === "yearly" ? now.getMonth() : first.getMonth();
+    const target = new Date(year, month, Math.min(day, new Date(year, month + 1, 0).getDate()));
+    if (frequency === "yearly" && target < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+      target.setFullYear(target.getFullYear() + 1);
+    }
+    return dateString(target);
+  }
+
+  function cleanVoiceDescription(statement) {
+    const numberPattern = "\\d{1,3}(?:[.\\s]\\d{3})*(?:[,.]\\d{1,2})?|\\d+(?:[,.]\\d{1,2})?";
+    const wordNumberPattern = "(?:null|ein|eine|einen|eins|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|dreizehn|vierzehn|fünfzehn|sechzehn|siebzehn|achtzehn|neunzehn|zwanzig|dreißig|dreissig|vierzig|fünfzig|sechzig|siebzig|achtzig|neunzig|hundert|tausend|(?:ein|zwei|drei|vier|fünf|sechs|sieben|acht|neun)(?:und(?:zwanzig|dreißig|dreissig|vierzig|fünfzig|sechzig|siebzig|achtzig|neunzig)|hundert|tausend))";
+    return statement
+      .replace(new RegExp(`(?:${numberPattern})\\s*(?:€|euro|eur)\\s+(?:und\\s+)?(?:${numberPattern}|${wordNumberPattern})(?:\\s*cent)?\\b`, "gi"), " ")
+      .replace(new RegExp(`\\b${wordNumberPattern}\\s+euro\\s+(?:und\\s+)?${wordNumberPattern}(?:\\s*cent)?\\b`, "gi"), " ")
+      .replace(new RegExp(`(?:€\\s*(${numberPattern})|(${numberPattern})\\s*(?:€|euro|eur))`, "i"), " ")
+      .replace(/\b(?:null|ein|eine|einen|eins|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|dreizehn|vierzehn|fünfzehn|sechzehn|siebzehn|achtzehn|neunzehn|zwanzig|dreißig|dreissig|vierzig|fünfzig|sechzig|siebzig|achtzig|neunzig|hundert|tausend)\s+euro\b/gi, " ")
+      .replace(/\b(?:ein|zwei|drei|vier|fünf|sechs|sieben|acht|neun)(?:und(?:zwanzig|dreißig|dreissig|vierzig|fünfzig|sechzig|siebzig|achtzig|neunzig)|hundert|tausend)\s+euro\b/gi, " ")
+      .replace(/\b(?:jeden|jedes)\s+(?:monat|jahr)\b|\b(?:monatlich|jährlich|wöchentlich|täglich)\b/gi, " ")
+      .replace(/\b(?:jeden\s+)?\d{1,2}\.?\s*(?:tag\s+)?(?:des|im)?\s*monats\b|\bam\s+\d{1,2}\.?(?:\s*(?:(?:des|im)\s*)?monats?)?/gi, " ")
+      .replace(/\b(?:ich|habe|hab|als|ausgabe|ausgaben|einnahme|einnahmen|bekomme|kriege|erhalte|verdiene|kommt|kommt noch|geht|jeden|regelmäßig|regelmaessig|wiederkehrend|für|fuer|euro|eur)\b/gi, " ")
+      .replace(/\s+/g, " ").replace(/^[\s,.:;-]+|[\s,.:;-]+$/g, "").trim();
+  }
+
+  function parseVoiceStatements(text) {
+    const statements = splitVoiceStatements(text);
+    const records = [];
+    const rejected = [];
+    for (const statement of statements) {
+      const amount = parseSpokenAmount(statement);
+      if (!amount) {
+        rejected.push(statement);
+        continue;
+      }
+      const kind = voiceKind(statement);
+      const frequency = voiceFrequency(statement);
+      const day = recurringDay(statement);
+      const date = frequency === "once" ? today : nextOccurrenceForDay(day || new Date().getDate(), frequency);
+      const category = suggestCategory(statement, kind);
+      const description = cleanVoiceDescription(statement) || category;
+      records.push({ id: crypto.randomUUID(), description, amount, kind, category, frequency, date });
+    }
+    return { records, rejected };
   }
 
   function getRange() {
@@ -262,23 +429,31 @@
     const left = 25;
     const right = 12;
     const chartTop = 12;
-    const chartBottom = 157;
+    const chartBottom = 148;
     const chartHeight = chartBottom - chartTop;
     const groupWidth = (width - left - right) / buckets.length;
-    const barWidth = Math.min(22, groupWidth * .28);
     let svg = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><title>Einnahmen und Ausgaben im Zeitraum</title>`;
     for (let i = 0; i < 4; i++) {
       const y = chartTop + i * chartHeight / 3;
       svg += `<line x1="${left}" x2="${width - right}" y1="${y}" y2="${y}" stroke="#edf1ee" stroke-dasharray="3 5"/>`;
     }
-    buckets.forEach((bucket, index) => {
-      const center = left + groupWidth * (index + .5);
-      const incomeHeight = Math.max(bucket.income ? 2 : 0, bucket.income / max * chartHeight);
-      const expenseHeight = Math.max(bucket.expense ? 2 : 0, bucket.expense / max * chartHeight);
-      svg += `<rect x="${center - barWidth - 2}" y="${chartBottom - incomeHeight}" width="${barWidth}" height="${incomeHeight}" rx="3" fill="#68bd91"><title>${escapeHtml(bucket.label)} Einnahmen: ${euro(bucket.income)}</title></rect>`;
-      svg += `<rect x="${center + 2}" y="${chartBottom - expenseHeight}" width="${barWidth}" height="${expenseHeight}" rx="3" fill="#e7a292"><title>${escapeHtml(bucket.label)} Ausgaben: ${euro(bucket.expense)}</title></rect>`;
-      svg += `<text x="${center}" y="180" text-anchor="middle" font-size="10" fill="#9aa49e" font-family="DM Sans, sans-serif">${escapeHtml(bucket.label)}</text>`;
-    });
+    const line = (kind, color) => {
+      const points = buckets.map((bucket, index) => {
+        const x = left + groupWidth * (index + .5);
+        const y = chartBottom - bucket[kind] / max * chartHeight;
+        return `${x},${y}`;
+      }).join(" ");
+      let output = `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+      buckets.forEach((bucket, index) => {
+        const x = left + groupWidth * (index + .5);
+        const y = chartBottom - bucket[kind] / max * chartHeight;
+        output += `<circle cx="${x}" cy="${y}" r="4" fill="white" stroke="${color}" stroke-width="2"><title>${escapeHtml(bucket.label)} ${kind === "income" ? "Einnahmen" : "Ausgaben"}: ${euro(bucket[kind])}</title></circle>`;
+        output += `<text x="${x}" y="178" text-anchor="middle" font-size="10" fill="#9aa49e" font-family="sans-serif">${escapeHtml(bucket.label)}</text>`;
+      });
+      return output;
+    };
+    svg += line("income", "#54ad7d");
+    svg += line("expense", "#e48d7d");
     svg += "</svg>";
     wrapper.innerHTML = svg;
   }
@@ -287,16 +462,28 @@
     const expenses = items.filter((item) => item.kind === "expense");
     const totals = new Map();
     for (const item of expenses) totals.set(item.category, (totals.get(item.category) || 0) + item.amount);
-    const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
     const target = $("#category-list");
+    const donut = $("#category-donut");
     if (!sorted.length) {
       target.innerHTML = '<div class="empty-state">Noch keine Ausgaben in diesem Zeitraum.</div>';
+      donut.innerHTML = "";
       return;
     }
-    const max = sorted[0][1];
-    target.innerHTML = sorted.map(([category, total]) => {
+    const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+    const circumference = 2 * Math.PI * 49;
+    let offset = 0;
+    const circles = sorted.map(([category, total]) => {
       const [icon, color] = categoryMeta[category] || categoryMeta.Sonstiges;
-      return `<div class="category-row"><span class="category-icon">${icon}</span><div><div class="category-name"><span>${category}</span><span>${Math.round(total / expenses.reduce((sum, item) => sum + item.amount, 0) * 100)}%</span></div><div class="category-track"><div class="category-fill" style="width:${total / max * 100}%;background:${color}"></div></div></div><span class="category-amount">${euro(total)}</span></div>`;
+      const length = total / totalExpenses * circumference;
+      const circle = `<circle cx="62" cy="62" r="49" fill="none" stroke="${color}" stroke-width="15" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 62 62)"><title>${category}: ${euro(total)}</title></circle>`;
+      offset += length;
+      return circle;
+    }).join("");
+    donut.innerHTML = `<svg viewBox="0 0 124 124" role="img" aria-label="Ausgaben gesamt ${euro(totalExpenses)}"><circle cx="62" cy="62" r="49" fill="none" stroke="#edf2ee" stroke-width="15"/>${circles}<text x="62" y="59" text-anchor="middle" fill="#819087" font-size="8" font-family="sans-serif">GESAMT</text><text x="62" y="73" text-anchor="middle" fill="#23342b" font-size="11" font-weight="700" font-family="sans-serif">${escapeHtml(euro(totalExpenses))}</text></svg>`;
+    target.innerHTML = sorted.slice(0, 5).map(([category, total]) => {
+      const [icon, color] = categoryMeta[category] || categoryMeta.Sonstiges;
+      return `<div class="category-row"><span class="category-icon" style="color:${color}">${icon}</span><div><div class="category-name"><span>${category}</span><span>${Math.round(total / totalExpenses * 100)}%</span></div><div class="category-track"><div class="category-fill" style="width:${total / sorted[0][1] * 100}%;background:${color}"></div></div></div><span class="category-amount">${euro(total)}</span></div>`;
     }).join("");
   }
 
@@ -337,6 +524,8 @@
     $$(".entry-tab").forEach((tab) => tab.classList.toggle("selected", tab.dataset.kind === transactionKind));
     setCategories($("#category"), transactionKind);
     $("#transaction-date").value = today;
+    $("#transaction-repeat-options").hidden = true;
+    $("#transaction-date-label").textContent = "Datum";
     $("#entry-dialog").showModal();
     $("#description").focus();
   }
@@ -351,10 +540,104 @@
     $("#recurring-description").focus();
   }
 
+  function renderVoiceDrafts() {
+    const preview = $("#voice-preview");
+    const list = $("#voice-draft-list");
+    preview.hidden = !voiceDrafts.length;
+    $("#preview-count").textContent = `${voiceDrafts.length} ${voiceDrafts.length === 1 ? "Buchung erkannt" : "Buchungen erkannt"}`;
+    list.innerHTML = voiceDrafts.map((draft) => `
+      <article class="voice-draft" data-draft-id="${draft.id}">
+        <div class="voice-draft-heading">
+          <strong>${draft.frequency === "once" ? "Einmalig" : draft.frequency === "monthly" ? "Jeden Monat" : "Jedes Jahr"}</strong>
+          <button class="delete-draft" type="button" data-remove-draft="${draft.id}" aria-label="Erkannte Buchung entfernen">×</button>
+        </div>
+        <label class="field-label">Beschreibung<input data-draft-field="description" value="${escapeHtml(draft.description)}" maxlength="100"></label>
+        <div class="field-row">
+          <label class="field-label">Betrag (€)<input data-draft-field="amount" type="number" min="0.01" step="0.01" value="${draft.amount.toFixed(2)}"></label>
+          <label class="field-label">Art<select data-draft-field="kind"><option value="expense" ${draft.kind === "expense" ? "selected" : ""}>Ausgabe</option><option value="income" ${draft.kind === "income" ? "selected" : ""}>Einnahme</option></select></label>
+        </div>
+        <div class="field-row">
+          <label class="field-label">Kategorie<select data-draft-field="category">${categories[draft.kind].map((category) => `<option value="${category}" ${category === draft.category ? "selected" : ""}>${category}</option>`).join("")}</select></label>
+          <label class="field-label">Wiederholung<select data-draft-field="frequency"><option value="once" ${draft.frequency === "once" ? "selected" : ""}>Einmalig</option><option value="monthly" ${draft.frequency === "monthly" ? "selected" : ""}>Monatlich</option><option value="yearly" ${draft.frequency === "yearly" ? "selected" : ""}>Jährlich</option></select></label>
+        </div>
+        <label class="field-label">Nächstes Datum<input data-draft-field="date" type="date" value="${draft.date}"></label>
+      </article>`).join("");
+  }
+
+  function updateDraftField(target) {
+    const card = target.closest("[data-draft-id]");
+    const draft = voiceDrafts.find((item) => item.id === card?.dataset.draftId);
+    if (!draft) return;
+    const field = target.dataset.draftField;
+    draft[field] = field === "amount" ? Number(target.value) : target.value;
+    if (field === "kind") {
+      const categorySelect = card.querySelector('[data-draft-field="category"]');
+      const suggested = suggestCategory(draft.description, draft.kind);
+      categorySelect.innerHTML = categories[draft.kind].map((category) => `<option value="${category}">${category}</option>`).join("");
+      categorySelect.value = suggested;
+      draft.category = suggested;
+    }
+  }
+
+  function analyzeVoiceInput() {
+    const { records, rejected } = parseVoiceStatements($("#voice-transcript").value);
+    voiceDrafts = records;
+    renderVoiceDrafts();
+    if (!records.length) {
+      $("#bulk-voice-hint").textContent = "Ich habe keine Beträge erkannt. Sprich Betrag und Anlass, z. B. „12,99 Euro Netflix jeden Monat“.";
+    } else {
+      const note = rejected.length ? ` ${rejected.length} Ansage(n) ohne erkennbaren Betrag bitte ergänzen.` : "";
+      $("#bulk-voice-hint").textContent = `${records.length} Buchung(en) erkannt. Die Vorschau ist noch nicht gespeichert.${note}`;
+    }
+  }
+
+  function saveVoiceDrafts() {
+    for (const draft of voiceDrafts) {
+      if (!draft.description.trim() || !Number.isFinite(draft.amount) || draft.amount <= 0 ||
+          !isDateValue(draft.date) || !categories[draft.kind]?.includes(draft.category)) {
+        showToast("Bitte prüfe Beschreibung, Betrag, Datum und Kategorie in jeder Zeile.");
+        return;
+      }
+    }
+    if (!voiceDrafts.length) {
+      showToast("Erst Ansagen erfassen und erkennen lassen.");
+      return;
+    }
+    const previousState = state;
+    state = {
+      transactions: [...state.transactions],
+      recurring: [...state.recurring]
+    };
+    for (const draft of voiceDrafts) {
+      if (draft.frequency === "once") {
+        state.transactions.push({
+          id: draft.id, description: draft.description.trim(), amount: draft.amount,
+          date: draft.date, category: draft.category, kind: draft.kind
+        });
+      } else {
+        state.recurring.push({
+          id: draft.id, description: draft.description.trim(), amount: draft.amount,
+          start: draft.date, end: "", category: draft.category, kind: draft.kind,
+          frequency: draft.frequency
+        });
+      }
+    }
+    if (!saveState()) {
+      state = previousState;
+      render();
+      return;
+    }
+    $("#voice-dialog").close();
+    voiceDrafts = [];
+    $("#voice-transcript").value = "";
+    renderVoiceDrafts();
+    showToast("Die erkannten Buchungen wurden gespeichert.");
+  }
+
   function startVoiceInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      showToast("Spracheingabe wird von diesem Browser nicht unterstützt.");
+      $("#voice-hint").textContent = "Dieser Browser unterstützt keine Spracheingabe. Du kannst die Buchung manuell eingeben.";
       return;
     }
     if (speechRecognition) {
@@ -374,12 +657,19 @@
       $("#description").value = text;
       const amount = parseSpokenAmount(text);
       if (amount) $("#amount").value = amount.toFixed(2);
-      const spokenIncome = /\b(einnahme|bekommen|verdient|gehalt|erstattung|erhalten)\b/i.test(text);
-      transactionKind = spokenIncome ? "income" : "expense";
+      transactionKind = voiceKind(text);
       $$(".entry-tab").forEach((tab) => tab.classList.toggle("selected", tab.dataset.kind === transactionKind));
       const category = suggestCategory(text, transactionKind);
       setCategories($("#category"), transactionKind, category);
-      hint.textContent = `Erkannt: ${text}${amount ? ` · ${euro(amount)}` : ""} · Kategorie: ${category}`;
+      const frequency = voiceFrequency(text);
+      $("#transaction-recurring").checked = frequency !== "once";
+      $("#transaction-repeat-options").hidden = frequency === "once";
+      $("#transaction-date-label").textContent = frequency === "once" ? "Datum" : "Nächster Zahlungstag";
+      if (frequency !== "once") {
+        $("#transaction-frequency").value = frequency;
+        $("#transaction-date").value = nextOccurrenceForDay(recurringDay(text) || new Date().getDate(), frequency);
+      }
+      hint.textContent = `Erkannt: ${text}${amount ? ` · ${euro(amount)}` : ""} · ${transactionKind === "income" ? "Einnahme" : "Ausgabe"} · ${category}${frequency !== "once" ? ` · ${frequency === "monthly" ? "monatlich" : "jährlich"}` : ""}`;
       if (!amount) $("#amount").focus();
     };
     speechRecognition.onerror = (event) => {
@@ -397,6 +687,75 @@
       button.classList.remove("listening");
       hint.textContent = "Spracherkennung konnte nicht gestartet werden.";
       console.error("Spracherkennung konnte nicht gestartet werden.", error);
+    }
+  }
+
+  function startBulkVoiceInput() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const button = $("#bulk-voice-button");
+    const hint = $("#bulk-voice-hint");
+    if (!SpeechRecognition) {
+      bulkVoiceActive = false;
+      hint.textContent = "Dieser Browser unterstützt keine Spracheingabe. Tippe deine Ansagen einfach in das Textfeld.";
+      $("#voice-transcript").focus();
+      return;
+    }
+    if (speechRecognition) {
+      bulkVoiceActive = false;
+      speechRecognition.stop();
+      return;
+    }
+    bulkVoiceActive = true;
+    speechRecognition = new SpeechRecognition();
+    speechRecognition.lang = "de-DE";
+    speechRecognition.continuous = true;
+    speechRecognition.interimResults = false;
+    speechRecognition.maxAlternatives = 1;
+    button.textContent = "■ Aufnahme beenden";
+    button.classList.add("listening");
+    hint.textContent = "Ich höre zu. Sprich mehrere Buchungen nacheinander; tippe zum Beenden erneut.";
+    speechRecognition.onresult = (event) => {
+      const finalParts = [];
+      for (let index = event.resultIndex; index < event.results.length; index++) {
+        if (event.results[index].isFinal) finalParts.push(event.results[index][0].transcript.trim());
+      }
+      if (finalParts.length) {
+        const transcript = $("#voice-transcript");
+        transcript.value = [transcript.value.trim(), ...finalParts].filter(Boolean).join("\n");
+        transcript.scrollTop = transcript.scrollHeight;
+      }
+    };
+    speechRecognition.onerror = (event) => {
+      const message = event.error === "not-allowed"
+        ? "Mikrofonzugriff verweigert. Erlaube Mikrofonzugriff in den Browser-Einstellungen."
+        : event.error === "network"
+          ? "Spracherkennung benötigt eine Netzwerkverbindung. Du kannst den Text stattdessen eingeben."
+          : `Spracheingabe fehlgeschlagen (${event.error}). Tippe den Text stattdessen ein.`;
+      hint.textContent = message;
+      if (["not-allowed", "service-not-allowed", "audio-capture", "network"].includes(event.error)) bulkVoiceActive = false;
+    };
+    speechRecognition.onend = () => {
+      speechRecognition = null;
+      button.classList.remove("listening");
+      if (bulkVoiceActive && $("#voice-dialog").open) {
+        hint.textContent = "Kurze Pause erkannt – Aufnahme wird fortgesetzt …";
+        setTimeout(() => {
+          if (bulkVoiceActive && $("#voice-dialog").open && !speechRecognition) startBulkVoiceInput();
+        }, 250);
+        return;
+      }
+      button.textContent = "♩ Aufnahme fortsetzen";
+      if (hint.textContent.startsWith("Ich höre zu")) hint.textContent = "Aufnahme beendet. Ergänze weitere Ansagen oder wähle „Ansagen erkennen“.";
+    };
+    try {
+      speechRecognition.start();
+    } catch (error) {
+      bulkVoiceActive = false;
+      speechRecognition = null;
+      button.textContent = "♩ Aufnahme starten";
+      button.classList.remove("listening");
+      hint.textContent = "Aufnahme konnte nicht gestartet werden. Prüfe die Mikrofonfreigabe.";
+      console.error("Mehrfach-Spracherkennung konnte nicht gestartet werden.", error);
     }
   }
 
@@ -461,7 +820,25 @@
   function bindEvents() {
     $("#open-transaction").addEventListener("click", openTransactionDialog);
     $("#add-recurring").addEventListener("click", openRecurringDialog);
+    $("#open-voice-entry").addEventListener("click", () => {
+      bulkVoiceActive = false;
+      voiceDrafts = [];
+      $("#voice-transcript").value = "";
+      $("#voice-preview").hidden = true;
+      $("#bulk-voice-hint").textContent = "Erkanntes bitte vor dem Speichern prüfen. Spracheingabe hängt von Browser und Mikrofonfreigabe ab.";
+      $("#voice-dialog").showModal();
+    });
     $$("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
+    $("#voice-dialog").addEventListener("close", () => {
+      bulkVoiceActive = false;
+      if (speechRecognition) speechRecognition.stop();
+      $("#bulk-voice-button").classList.remove("listening");
+      $("#bulk-voice-button").textContent = "♩ Aufnahme starten";
+    });
+    $("#entry-dialog").addEventListener("close", () => {
+      if (speechRecognition) speechRecognition.stop();
+      $("#voice-button").classList.remove("listening");
+    });
     $$(".entry-tab").forEach((button) => button.addEventListener("click", () => {
       transactionKind = button.dataset.kind;
       $$(".entry-tab").forEach((tab) => tab.classList.toggle("selected", tab === button));
@@ -474,6 +851,26 @@
     }));
     $("#description").addEventListener("input", onVoiceDescriptionInput);
     $("#voice-button").addEventListener("click", startVoiceInput);
+    $("#transaction-recurring").addEventListener("change", (event) => {
+      $("#transaction-repeat-options").hidden = !event.currentTarget.checked;
+      $("#transaction-date-label").textContent = event.currentTarget.checked ? "Erster Zahlungstag" : "Datum";
+    });
+    $("#bulk-voice-button").addEventListener("click", startBulkVoiceInput);
+    $("#analyze-voice-button").addEventListener("click", analyzeVoiceInput);
+    $("#save-voice-drafts").addEventListener("click", saveVoiceDrafts);
+    $("#clear-voice-drafts").addEventListener("click", () => {
+      voiceDrafts = [];
+      renderVoiceDrafts();
+      $("#voice-preview").hidden = true;
+    });
+    $("#voice-draft-list").addEventListener("input", (event) => updateDraftField(event.target));
+    $("#voice-draft-list").addEventListener("change", (event) => updateDraftField(event.target));
+    $("#voice-draft-list").addEventListener("click", (event) => {
+      const remove = event.target.closest("[data-remove-draft]");
+      if (!remove) return;
+      voiceDrafts = voiceDrafts.filter((draft) => draft.id !== remove.dataset.removeDraft);
+      renderVoiceDrafts();
+    });
     $("#transaction-form").addEventListener("submit", (event) => {
       event.preventDefault();
       const form = new FormData(event.currentTarget);
@@ -482,21 +879,35 @@
         showToast("Bitte gib einen gültigen Betrag ein.");
         return;
       }
-      const transaction = {
-        id: crypto.randomUUID(),
-        description: String(form.get("description")).trim(),
-        amount,
-        date: String(form.get("date")),
-        category: String(form.get("category")),
-        kind: transactionKind
-      };
-      state.transactions.push(transaction);
+      const description = String(form.get("description")).trim();
+      if ($("#transaction-recurring").checked) {
+        state.recurring.push({
+          id: crypto.randomUUID(),
+          description,
+          amount,
+          start: String(form.get("date")),
+          end: "",
+          category: String(form.get("category")),
+          kind: transactionKind,
+          frequency: $("#transaction-frequency").value
+        });
+      } else {
+        state.transactions.push({
+          id: crypto.randomUUID(),
+          description,
+          amount,
+          date: String(form.get("date")),
+          category: String(form.get("category")),
+          kind: transactionKind
+        });
+      }
       if (!saveState()) {
-        state.transactions.pop();
+        if ($("#transaction-recurring").checked) state.recurring.pop();
+        else state.transactions.pop();
         return;
       }
       event.currentTarget.closest("dialog").close();
-      showToast("Buchung gespeichert.");
+      showToast($("#transaction-recurring").checked ? "Wiederkehrende Buchung gespeichert." : "Buchung gespeichert.");
     });
     $("#recurring-form").addEventListener("submit", (event) => {
       event.preventDefault();
